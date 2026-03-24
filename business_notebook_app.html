@@ -1,0 +1,221 @@
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font-sans); }
+.nb { display: flex; height: 520px; border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); overflow: hidden; background: var(--color-background-primary); }
+.sidebar { width: 220px; min-width: 220px; border-right: 0.5px solid var(--color-border-tertiary); display: flex; flex-direction: column; background: var(--color-background-secondary); }
+.sb-head { padding: 14px 14px 10px; border-bottom: 0.5px solid var(--color-border-tertiary); }
+.sb-title { font-size: 13px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 8px; }
+.new-btn { width: 100%; padding: 7px 10px; background: #D62B00; color: white; border: none; border-radius: var(--border-radius-md); font-size: 12px; cursor: pointer; text-align: left; }
+.new-btn:hover { background: #aa2200; }
+.search-inp { width: 100%; margin-top: 8px; padding: 6px 10px; font-size: 12px; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); background: var(--color-background-primary); color: var(--color-text-primary); outline: none; }
+.search-inp:focus { border-color: #D62B00; }
+.notes-list { flex: 1; overflow-y: auto; padding: 6px; }
+.note-item { padding: 10px 10px; border-radius: var(--border-radius-md); cursor: pointer; margin-bottom: 3px; border: 0.5px solid transparent; }
+.note-item:hover { background: var(--color-background-primary); }
+.note-item.active { background: var(--color-background-primary); border-color: #D62B00; }
+.ni-title { font-size: 12px; font-weight: 500; color: var(--color-text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ni-preview { font-size: 11px; color: var(--color-text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+.ni-date { font-size: 10px; color: var(--color-text-tertiary); margin-top: 3px; }
+.ni-tag { display: inline-block; font-size: 10px; padding: 1px 6px; border-radius: 10px; margin-top: 3px; }
+.editor { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.ed-bar { padding: 12px 16px 10px; border-bottom: 0.5px solid var(--color-border-tertiary); display: flex; align-items: center; gap: 10px; }
+.ed-title-inp { flex: 1; font-size: 16px; font-weight: 500; border: none; outline: none; background: transparent; color: var(--color-text-primary); font-family: var(--font-sans); }
+.tag-sel { font-size: 11px; padding: 4px 8px; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); background: var(--color-background-secondary); color: var(--color-text-secondary); outline: none; cursor: pointer; }
+.tag-sel:focus { border-color: #D62B00; }
+.del-btn { padding: 5px 10px; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); background: transparent; color: var(--color-text-tertiary); font-size: 11px; cursor: pointer; }
+.del-btn:hover { color: #D62B00; border-color: #D62B00; }
+.ed-body { flex: 1; padding: 14px 16px; overflow: hidden; display: flex; flex-direction: column; gap: 10px; }
+.ed-textarea { flex: 1; border: none; outline: none; resize: none; font-size: 13px; line-height: 1.7; background: transparent; color: var(--color-text-primary); font-family: var(--font-sans); }
+.ed-footer { padding: 8px 16px; border-top: 0.5px solid var(--color-border-tertiary); display: flex; align-items: center; justify-content: space-between; }
+.save-status { font-size: 11px; color: var(--color-text-tertiary); }
+.word-count { font-size: 11px; color: var(--color-text-tertiary); }
+.empty-state { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; }
+.empty-icon { font-size: 32px; }
+.empty-text { font-size: 13px; color: var(--color-text-secondary); }
+.empty-btn { padding: 8px 20px; background: #D62B00; color: white; border: none; border-radius: var(--border-radius-md); font-size: 13px; cursor: pointer; }
+.tag-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; }
+.urgent { background: #ffeaea; color: #a32d2d; }
+.client { background: #e6f1fb; color: #185fa5; }
+.idea { background: #eaf3de; color: #3b6d11; }
+.general { background: #f1efe8; color: #5f5e5a; }
+.ask-btn { padding: 6px 12px; background: #D62B00; color: white; border: none; border-radius: var(--border-radius-md); font-size: 11px; cursor: pointer; }
+.ask-btn:hover { background: #aa2200; }
+</style>
+
+<div class="nb" id="app">
+  <div class="sidebar">
+    <div class="sb-head">
+      <div class="sb-title">My Notebook</div>
+      <button class="new-btn" onclick="newNote()">+ New note</button>
+      <input class="search-inp" id="search" placeholder="Search notes..." oninput="renderList()" />
+    </div>
+    <div class="notes-list" id="notes-list"></div>
+  </div>
+  <div class="editor" id="editor">
+    <div class="empty-state" id="empty-state">
+      <div class="empty-icon">📓</div>
+      <div class="empty-text">Select a note or create new</div>
+      <button class="empty-btn" onclick="newNote()">+ Create first note</button>
+    </div>
+    <div id="editor-content" style="display:none; flex:1; display:none; flex-direction:column; overflow:hidden;">
+      <div class="ed-bar">
+        <input class="ed-title-inp" id="ed-title" placeholder="Note title..." oninput="autoSave()" />
+        <select class="tag-sel" id="ed-tag" onchange="autoSave()">
+          <option value="general">General</option>
+          <option value="client">Client</option>
+          <option value="idea">Idea</option>
+          <option value="urgent">Urgent</option>
+        </select>
+        <button class="del-btn" onclick="deleteNote()">Delete</button>
+      </div>
+      <div class="ed-body">
+        <textarea class="ed-textarea" id="ed-body" placeholder="Start writing here...&#10;&#10;Tip: Note everything — client ka naam, unki requirements, budget, timeline — sab kuch." oninput="autoSave()"></textarea>
+      </div>
+      <div class="ed-footer">
+        <span class="save-status" id="save-status">All changes saved</span>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <span class="word-count" id="word-count">0 words</span>
+          <button class="ask-btn" onclick="askClaude()">Ask Claude about this ↗</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let notes = [];
+let activeId = null;
+let saveTimer = null;
+
+const TAG_STYLES = {
+  general: { bg: '#f1efe8', color: '#5f5e5a', dot: '#888780', label: 'General' },
+  client: { bg: '#e6f1fb', color: '#185fa5', dot: '#378add', label: 'Client' },
+  idea: { bg: '#eaf3de', color: '#3b6d11', dot: '#639922', label: 'Idea' },
+  urgent: { bg: '#ffeaea', color: '#a32d2d', dot: '#e24b4a', label: 'Urgent' },
+};
+
+function fmtDate(ts) {
+  const d = new Date(ts);
+  const now = new Date();
+  const diff = now - d;
+  if (diff < 60000) return 'Just now';
+  if (diff < 3600000) return Math.floor(diff/60000) + 'm ago';
+  if (diff < 86400000) return Math.floor(diff/3600000) + 'h ago';
+  return d.toLocaleDateString('en-IN', { day:'2-digit', month:'short' });
+}
+
+async function loadNotes() {
+  try {
+    const r = await window.storage.get('notebook_notes');
+    if (r && r.value) notes = JSON.parse(r.value);
+  } catch(e) { notes = []; }
+  renderList();
+  if (notes.length > 0) openNote(notes[0].id);
+}
+
+async function saveNotes() {
+  try {
+    await window.storage.set('notebook_notes', JSON.stringify(notes));
+    document.getElementById('save-status').textContent = 'Saved at ' + new Date().toLocaleTimeString('en-IN', {hour:'2-digit',minute:'2-digit'});
+  } catch(e) {}
+}
+
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+function newNote() {
+  const id = uid();
+  notes.unshift({ id, title: '', body: '', tag: 'general', updatedAt: Date.now(), createdAt: Date.now() });
+  saveNotes();
+  renderList();
+  openNote(id);
+  setTimeout(() => document.getElementById('ed-title').focus(), 50);
+}
+
+function openNote(id) {
+  activeId = id;
+  const note = notes.find(n => n.id === id);
+  if (!note) return;
+  document.getElementById('empty-state').style.display = 'none';
+  const ec = document.getElementById('editor-content');
+  ec.style.display = 'flex';
+  ec.style.flexDirection = 'column';
+  ec.style.flex = '1';
+  ec.style.overflow = 'hidden';
+  document.getElementById('ed-title').value = note.title;
+  document.getElementById('ed-body').value = note.body;
+  document.getElementById('ed-tag').value = note.tag || 'general';
+  updateWordCount();
+  document.getElementById('save-status').textContent = 'All changes saved';
+  renderList();
+}
+
+function autoSave() {
+  if (!activeId) return;
+  const note = notes.find(n => n.id === activeId);
+  if (!note) return;
+  note.title = document.getElementById('ed-title').value;
+  note.body = document.getElementById('ed-body').value;
+  note.tag = document.getElementById('ed-tag').value;
+  note.updatedAt = Date.now();
+  notes.sort((a,b) => b.updatedAt - a.updatedAt);
+  updateWordCount();
+  document.getElementById('save-status').textContent = 'Saving...';
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => { saveNotes(); renderList(); }, 600);
+}
+
+function updateWordCount() {
+  const body = document.getElementById('ed-body').value;
+  const words = body.trim() ? body.trim().split(/\s+/).length : 0;
+  document.getElementById('word-count').textContent = words + ' words';
+}
+
+function deleteNote() {
+  if (!activeId) return;
+  if (!confirm('Delete this note?')) return;
+  notes = notes.filter(n => n.id !== activeId);
+  activeId = null;
+  saveNotes();
+  renderList();
+  document.getElementById('editor-content').style.display = 'none';
+  document.getElementById('empty-state').style.display = 'flex';
+}
+
+function renderList() {
+  const q = (document.getElementById('search').value || '').toLowerCase();
+  const filtered = notes.filter(n =>
+    !q || n.title.toLowerCase().includes(q) || n.body.toLowerCase().includes(q)
+  );
+  const list = document.getElementById('notes-list');
+  if (filtered.length === 0) {
+    list.innerHTML = '<div style="padding:16px;text-align:center;font-size:12px;color:var(--color-text-tertiary);">' + (q ? 'No results' : 'No notes yet') + '</div>';
+    return;
+  }
+  list.innerHTML = filtered.map(n => {
+    const ts = TAG_STYLES[n.tag] || TAG_STYLES.general;
+    const preview = n.body ? n.body.replace(/\n/g,' ').slice(0,50) + (n.body.length > 50 ? '...' : '') : 'No content';
+    return `<div class="note-item ${n.id === activeId ? 'active' : ''}" onclick="openNote('${n.id}')">
+      <div class="ni-title">${n.title || 'Untitled'}</div>
+      <div class="ni-preview">${preview}</div>
+      <div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
+        <span class="ni-tag" style="background:${ts.bg};color:${ts.color};">
+          <span class="tag-dot" style="background:${ts.dot};"></span>${ts.label}
+        </span>
+        <span class="ni-date">${fmtDate(n.updatedAt)}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function askClaude() {
+  const note = notes.find(n => n.id === activeId);
+  if (!note) return;
+  const title = note.title || 'Untitled';
+  const body = note.body || '';
+  if (!body.trim()) { alert('Note is empty!'); return; }
+  sendPrompt('Meri is note ke baare mein help karo:\n\n**' + title + '**\n\n' + body + '\n\nIs note ko padhke mujhe kya kya cheezein banana chahiye ya kya plan banana chahiye?');
+}
+
+loadNotes();
+</script>
